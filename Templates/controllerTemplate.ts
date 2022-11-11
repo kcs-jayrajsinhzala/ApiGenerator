@@ -3,10 +3,11 @@ export const controllerTemplate = (name) => {
 
     let template = ``
 
-    template += `import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+    template += `import { Controller, Get, Query, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { ${fileName}Service } from './${name}.service';
 import { Create${fileName}Dto } from './dto/create-${name}.dto';
 import { Update${fileName}Dto } from './dto/update-${name}.dto';
+import { Filter${fileName}Dto } from './dto/filter-${name}.dto';
 
 @Controller('${name}')
 export class ${fileName}Controller {
@@ -18,8 +19,8 @@ export class ${fileName}Controller {
     }
 
     @Get('all')
-    findAll() {
-    return this.${name}Service.findAll();
+    findAll(@Query() filter${fileName}Dto: Filter${fileName}Dto) {
+    return this.${name}Service.findAll(filter${fileName}Dto);
     }
 
     @Get(':id')

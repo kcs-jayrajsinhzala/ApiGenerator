@@ -28,6 +28,7 @@ export const schemaTemplate = (filename, fields) => {
 Column,
 Model,
 ForeignKey,
+BelongsTo,
 Table,
 } from 'sequelize-typescript';
 import sequelize from 'sequelize';
@@ -36,6 +37,7 @@ ${importTemplates(reference)}
 export class ${filename.charAt(0).toUpperCase() + filename.slice(1)} extends Model {
 ${fieldsData}}
 `
+    console.log(template);
 
     return template
 

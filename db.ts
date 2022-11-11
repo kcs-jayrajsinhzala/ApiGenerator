@@ -18,12 +18,12 @@ import path from "path"
 
 
 //sequelize
-export const dbConnect = async (dbName: string, dbUser: string, dbPassword: string, dbHost: string, dbDriver: Dialect) => {
+export const dbConnect = async (dbInfo) => {
 
 
-    const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
-        host: dbHost,
-        dialect: dbDriver
+    const sequelize = new Sequelize(dbInfo.dbName, dbInfo.dbUser, dbInfo.dbPassword, {
+        host: dbInfo.dbHost,
+        dialect: dbInfo.dbDriver
     })
 
 
@@ -31,13 +31,13 @@ export const dbConnect = async (dbName: string, dbUser: string, dbPassword: stri
         if (value.includes("tinyint(1)")) {
             return 'boolean'
         }
-        if (value.includes("int")) {
+        if (value.includes("int") || value.includes("float")) {
             return 'number'
         }
         if (value.includes("date") || value.includes("time")) {
             return 'Date'
         }
-        if (value.includes('varchar')) {
+        if (value.includes('varchar') || value.includes('text')) {
             return 'string'
         }
     }
@@ -48,7 +48,7 @@ export const dbConnect = async (dbName: string, dbUser: string, dbPassword: stri
 
 
 
-    const [relationList, metadata2]: any = await sequelize.query(`SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = '${dbName}'`)
+    const [relationList, metadata2]: any = await sequelize.query(`SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = '${dbInfo.dbName}'`)
 
 
     // console.log(relationList);
@@ -63,17 +63,18 @@ export const dbConnect = async (dbName: string, dbUser: string, dbPassword: stri
         // console.log(e);
 
         let data: any
+        let models = {}
         for (data of e) {
 
             // console.log(data[`Tables_in_${dbName}`]);
-            const table = data[`Tables_in_${dbName}`]
+            const table = data[`Tables_in_${dbInfo.dbName}`]
             const [results, metadata]: any = await sequelize.query(`SHOW COLUMNS from ${table}`)
             // console.log(results);
             // break;
             const fields = {}
 
             results.forEach(d => {
-                // console.log("first", d['Null']);
+                console.log("first", d);
                 // console.log(d['Type'].indexOf('enum'));
                 d['Null'] = d['Null'] === "YES" ? true : false
                 if (d['Type'].indexOf('enum') === 0) {
@@ -88,11 +89,16 @@ export const dbConnect = async (dbName: string, dbUser: string, dbPassword: stri
 
                 relationList.forEach(elm => {
                     if (elm.TABLE_NAME === table && elm.COLUMN_NAME === d['Field']) {
-                        d['Referece'] = elm.REFERENCED_TABLE_NAME
+                        d['Reference'] = elm.REFERENCED_TABLE_NAME
+                        d['ReferenceColumn'] = elm.REFERENCED_COLUMN_NAME
+
                     }
 
                 });
                 // console.log(d['Field'], d['Type']);
+                if (d['Reference']) {
+                    d['As'] = `${d['Reference']}_as_${d['Field']}`
+                }
 
 
                 fields[d['Field']] = {
@@ -100,12 +106,15 @@ export const dbConnect = async (dbName: string, dbUser: string, dbPassword: stri
                     default: d['defaultValue'],
                     allowNull: d['Null'],
                     key: d['Key'],
-                    reference: d['Referece'],
+                    referenceAs: d['As'],
+                    reference: d['Reference'],
+                    referenceColumn: d['ReferenceColumn'],
                     enumFields: d['enumFields']
                 }
 
             });
-            console.log(fields);
+            // console.log(fields);
+            models[table] = `${table.charAt(0).toUpperCase() + table.slice(1)}`
             const createDtoResponse = createDtoTemplate(table, fields)
 
             const schemaResponse = schemaTemplate(table, fields)
@@ -113,16 +122,18 @@ export const dbConnect = async (dbName: string, dbUser: string, dbPassword: stri
             const controllerResponse = controllerTemplate(table)
             const serviceResponse = serviceTemplate(table, fields)
             const updateDtoResponse = updateDtoTemplate(table)
+            const filterDtoResponse = filterDtoTemplate(table)
             // console.log(response);
 
             if (!fs.existsSync('./src/schemas')) {
-                fs.mkdirSync('./src/schemas', { recursive: true });
             }
+            fs.mkdirSync('./src/schemas', { recursive: true });
             fs.writeFileSync(`./src/schemas/${table}.schema.ts`, schemaResponse)
             fs.mkdirSync(`./src/${table}`, { recursive: true })
             fs.mkdirSync(`./src/${table}/dto`, { recursive: true })
             fs.writeFileSync(`./src/${table}/dto/create-${table}.dto.ts`, createDtoResponse)
             fs.writeFileSync(`./src/${table}/dto/update-${table}.dto.ts`, updateDtoResponse)
+            fs.writeFileSync(`./src/${table}/dto/filter-${table}.dto.ts`, filterDtoResponse)
             fs.writeFileSync(`./src/${table}/${table}.module.ts`, moduleResponse)
             fs.writeFileSync(`./src/${table}/${table}.controller.ts`, controllerResponse)
             fs.writeFileSync(`./src/${table}/${table}.service.ts`, serviceResponse)
@@ -133,6 +144,19 @@ export const dbConnect = async (dbName: string, dbUser: string, dbPassword: stri
 
 
         }
+        fs.mkdirSync('./src/database', { recursive: true });
+        const configResponse = configTemplate(models, dbInfo)
+        fs.writeFileSync(`./src/database/config.ts`, configResponse)
+
+
+
+        const envResponse = envTemplate(dbInfo)
+        fs.writeFileSync(`./.env`, envResponse)
+
+
+        const appModuleResponse = appModuleTemplate(models)
+        fs.writeFileSync(`./src/app.module.ts`, appModuleResponse)
+
 
     }
     )
@@ -204,6 +228,10 @@ import { controllerTemplate } from './Templates/controllerTemplate'
 import { serviceTemplate } from './Templates/serviceTemplate'
 import { createDtoTemplate } from './Templates/createDtoTemplate'
 import { updateDtoTemplate } from './Templates/updateDtoTemplate'
+import { filterDtoTemplate } from './Templates/filterDtoTemplate'
+import { appModuleTemplate } from './Templates/appModuleTemplate'
+import { configTemplate } from './Templates/configTemplate'
+import { envTemplate } from './Templates/envTemplate'
 
 // export const dbConnect = () => {
 //     var con = mysql.createConnection({

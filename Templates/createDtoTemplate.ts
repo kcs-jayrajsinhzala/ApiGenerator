@@ -1,5 +1,4 @@
 export const createDtoTemplate = (name, fields) => {
-    console.log(fields);
     const fileName = name.charAt(0).toUpperCase() + name.slice(1)
 
     const fieldsTemplate = (element) => {

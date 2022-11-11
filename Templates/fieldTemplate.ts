@@ -11,11 +11,23 @@ const generateColumnTemplate = (value, currentcolumn) => {
         }
         else {
             template += `, defaultValue: '${value['default']}'`
-
         }
     }
-    value['type'] = value['reference'] ? value['reference'].charAt(0).toUpperCase() + value['reference'].slice(1) : value['type']
     template += ` })\n\t${currentcolumn}: ${value['type']}\n\n`
+    return template
+}
+
+const generateBelongsToTemplate = (value, currentcolumn) => {
+    let template = ``
+
+    template += `\t@BelongsTo(() => ${value['reference'].charAt(0).toUpperCase() + value['reference'].slice(1)}, {
+        foreignKey: '${currentcolumn}',
+        targetKey: '${value['referenceColumn']}',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+    })
+    ${value['referenceAs']}?: ${value['reference'].charAt(0).toUpperCase() + value['reference'].slice(1)} | null;\n\n`
+
     return template
 }
 
@@ -26,6 +38,8 @@ export const fieldTemplate = (field) => {
         if (field[i]['reference']) {
             template += `\t@ForeignKey(() => ${field[i]['reference'].charAt(0).toUpperCase() + field[i]['reference'].slice(1)})\n`
             template += generateColumnTemplate(field[i], i)
+
+            template += generateBelongsToTemplate(field[i], i)
         }
         else {
             template += generateColumnTemplate(field[i], i)
