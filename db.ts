@@ -92,27 +92,27 @@ export const dbConnect = async (dbName: string, dbUser: string, dbPassword: stri
                     }
 
                 });
+                // console.log(d['Field'], d['Type']);
 
 
                 fields[d['Field']] = {
                     type: d['Type'],
                     default: d['defaultValue'],
                     allowNull: d['Null'],
+                    key: d['Key'],
                     reference: d['Referece'],
                     enumFields: d['enumFields']
                 }
-                // console.log(d);
 
             });
-            // console.log(fields);
-            let name = table.charAt(0).toUpperCase() + table.slice(1)
+            console.log(fields);
+            const createDtoResponse = createDtoTemplate(table, fields)
 
             const schemaResponse = schemaTemplate(table, fields)
             const moduleResponse = moduleTemplate(table, fields)
-            const controllerResponse = controllerTemplate(table, fields)
+            const controllerResponse = controllerTemplate(table)
             const serviceResponse = serviceTemplate(table, fields)
-            const createDtoResponse = createDtoTemplate(table, fields)
-            const updateDtoResponse = updateDtoTemplate(table, fields)
+            const updateDtoResponse = updateDtoTemplate(table)
             // console.log(response);
 
             if (!fs.existsSync('./src/schemas')) {

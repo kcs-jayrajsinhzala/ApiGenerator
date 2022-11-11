@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^9.2.0",
+    "@nestjs/mapped-types": "^1.2.0",
     "@nestjs/sequelize": "^9.0.0",
     "inquirer": "8.0.0",
     "mongoose": "^6.7.1",

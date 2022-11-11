@@ -13,7 +13,6 @@ export const moduleTemplate = (name, fields) => {
         modelList.push(element.charAt(0).toUpperCase() + element.slice(1))
     })
 
-    console.log(modelList);
 
 
     const importTemplates = (value) => {
@@ -32,19 +31,18 @@ export const moduleTemplate = (name, fields) => {
     template += `import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 ${importTemplates(reference)}
+import { ${fileName} } from '../schemas/${name}.schema';
 import { ${fileName}Service }  from './${name}.service';
 import { ${fileName}Controller } from './${name}.controller';
 
 @Module({
     imports: [
-      SequelizeModule.forFeature([${modelList}]),
+      SequelizeModule.forFeature([${fileName},${modelList}]),
     ],
     providers: [${fileName}Controller, ${fileName}Service],
-  })
-  export class ${fileName}Module {}
-  `
-
-    console.log(template);
+})
+export class ${fileName}Module {}
+`
 
     return template
 }

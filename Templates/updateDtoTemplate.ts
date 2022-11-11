@@ -1,4 +1,4 @@
-export const updateDtoTemplate = (name, fields) => {
+export const updateDtoTemplate = (name) => {
     const fileName = name.charAt(0).toUpperCase() + name.slice(1)
 
     let template = ``
