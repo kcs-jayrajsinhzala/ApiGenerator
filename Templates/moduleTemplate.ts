@@ -1,4 +1,4 @@
-export const moduleTemplate = (name, fields) => {
+export const moduleTemplate = (name, fields, apiType) => {
     const fileName = name.charAt(0).toUpperCase() + name.slice(1)
     let reference = []
     for (let i in fields) {
@@ -15,8 +15,15 @@ export const moduleTemplate = (name, fields) => {
 
 
 
-    const importTemplates = (value) => {
+    const importTemplates = (value, type, fname) => {
         let template = ``
+        if (type === "GraphQL") {
+            template += `import { GraphQLModule } from '@nestjs/graphql';\nimport { ${fname}Resolver }  from './${fname}.resolver';
+import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo';`
+        }
+        else if (type === "RestAPI") {
+            template += `import { ${fname}Controller }  from './${fname}.controller';\n`
+        }
         for (let i in value) {
             if (value[i]) {
 
@@ -26,20 +33,46 @@ export const moduleTemplate = (name, fields) => {
         return template
     }
 
+    const providersTemplate = (fname, type) => {
+        let template = ``
+        if (type === "RestAPI") {
+            template += `\tcontrollers: [${fname}Controller],\n\tproviders: [${fname}Service],`
+        }
+        else if (type === "GraphQL") {
+            template += `\tproviders: [${fname}Resolver, ${fname}Service],`
+        }
+        return template
+    }
+
+    const checkGraphQlModule = (fname, type) => {
+        let template = ``
+        if (type === "GraphQL") {
+            template += `\n\t\tGraphQLModule.forRoot<ApolloDriverConfig>({
+        driver: ApolloDriver,
+        autoSchemaFile: true,
+        include: [${fileName}Module],
+        path: '${name}/graphql',
+        context: ({ req, res }) =>
+            ({ req, res })  
+        }),`
+        }
+        return template
+    }
+
     let template = ``
 
     template += `import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-${importTemplates(reference)}
-import { ${fileName} } from '../schemas/${name}.schema';
 import { ${fileName}Service }  from './${name}.service';
-import { ${fileName}Controller } from './${name}.controller';
+${importTemplates(reference, apiType, fileName)}
+import { ${fileName} } from '../schemas/${name}.schema';
+
 
 @Module({
     imports: [
-      SequelizeModule.forFeature([${fileName},${modelList}]),
+      SequelizeModule.forFeature([${fileName},${modelList}]),${checkGraphQlModule(name, apiType)}
     ],
-    providers: [${fileName}Controller, ${fileName}Service],
+${providersTemplate(fileName, apiType)}
 })
 export class ${fileName}Module {}
 `

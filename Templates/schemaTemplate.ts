@@ -1,6 +1,6 @@
 import { fieldTemplate } from "./fieldTemplate"
 
-export const schemaTemplate = (filename, fields) => {
+export const schemaTemplate = (filename, fields, apiType) => {
 
     let reference = []
     for (let i in fields) {
@@ -10,8 +10,11 @@ export const schemaTemplate = (filename, fields) => {
     }
     reference = [... new Set(reference)]
 
-    const importTemplates = (value) => {
+    const importTemplates = (value, type) => {
         let template = ``
+        if (type === "GraphQL") {
+            template += `import { Field, ObjectType } from '@nestjs/graphql';\n`
+        }
         for (let i in value) {
             if (value[i]) {
 
@@ -22,7 +25,7 @@ export const schemaTemplate = (filename, fields) => {
     }
     let template = ``
 
-    const fieldsData = fieldTemplate(fields)
+    const fieldsData = fieldTemplate(fields, apiType)
 
     template += `import {
 Column,
@@ -32,12 +35,11 @@ BelongsTo,
 Table,
 } from 'sequelize-typescript';
 import sequelize from 'sequelize';
-${importTemplates(reference)}
-@Table({ timestamps: false })
+${importTemplates(reference, apiType)}
+@Table({ timestamps: false, freezeTableName: true })${apiType === "GraphQL" ? `\n@ObjectType({ isAbstract: true })` : ``}
 export class ${filename.charAt(0).toUpperCase() + filename.slice(1)} extends Model {
 ${fieldsData}}
 `
-    console.log(template);
 
     return template
 

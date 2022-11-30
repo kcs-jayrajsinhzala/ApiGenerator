@@ -74,7 +74,6 @@ export const dbConnect = async (dbInfo) => {
             const fields = {}
 
             results.forEach(d => {
-                console.log("first", d);
                 // console.log(d['Type'].indexOf('enum'));
                 d['Null'] = d['Null'] === "YES" ? true : false
                 if (d['Type'].indexOf('enum') === 0) {
@@ -115,32 +114,55 @@ export const dbConnect = async (dbInfo) => {
             });
             // console.log(fields);
             models[table] = `${table.charAt(0).toUpperCase() + table.slice(1)}`
-            const createDtoResponse = createDtoTemplate(table, fields)
 
-            const schemaResponse = schemaTemplate(table, fields)
-            const moduleResponse = moduleTemplate(table, fields)
+            const createDtoResponse = createDtoTemplate(table, fields, dbInfo.apiType)
+            const schemaResponse = schemaTemplate(table, fields, dbInfo.apiType)
+            const moduleResponse = moduleTemplate(table, fields, dbInfo.apiType)
             const controllerResponse = controllerTemplate(table)
-            const serviceResponse = serviceTemplate(table, fields)
-            const updateDtoResponse = updateDtoTemplate(table)
-            const filterDtoResponse = filterDtoTemplate(table)
+            const serviceResponse = serviceTemplate(table, fields, dbInfo.apiType)
+            const updateDtoResponse = updateDtoTemplate(table, fields, dbInfo.apiType)
+            const filterDtoResponse = filterDtoTemplate(table, dbInfo.apiType)
+            const resolverResponse = resolverTemplate(table)
             // console.log(response);
 
             if (!fs.existsSync('./src/schemas')) {
             }
             fs.mkdirSync('./src/schemas', { recursive: true });
-            fs.writeFileSync(`./src/schemas/${table}.schema.ts`, schemaResponse)
-            fs.mkdirSync(`./src/${table}`, { recursive: true })
-            fs.mkdirSync(`./src/${table}/dto`, { recursive: true })
-            fs.writeFileSync(`./src/${table}/dto/create-${table}.dto.ts`, createDtoResponse)
-            fs.writeFileSync(`./src/${table}/dto/update-${table}.dto.ts`, updateDtoResponse)
-            fs.writeFileSync(`./src/${table}/dto/filter-${table}.dto.ts`, filterDtoResponse)
-            fs.writeFileSync(`./src/${table}/${table}.module.ts`, moduleResponse)
-            fs.writeFileSync(`./src/${table}/${table}.controller.ts`, controllerResponse)
-            fs.writeFileSync(`./src/${table}/${table}.service.ts`, serviceResponse)
+
+
+            if (dbInfo.apiType === "RestAPI") {
+                fs.writeFileSync(`./src/schemas/${table}.schema.ts`, schemaResponse)
+                fs.mkdirSync(`./src/${table}`, { recursive: true })
+                fs.mkdirSync(`./src/${table}/dto`, { recursive: true })
+                fs.writeFileSync(`./src/${table}/dto/create-${table}.dto.ts`, createDtoResponse)
+                fs.writeFileSync(`./src/${table}/dto/update-${table}.dto.ts`, updateDtoResponse)
+                fs.writeFileSync(`./src/${table}/dto/filter-${table}.dto.ts`, filterDtoResponse)
+                fs.writeFileSync(`./src/${table}/${table}.module.ts`, moduleResponse)
+                fs.writeFileSync(`./src/${table}/${table}.controller.ts`, controllerResponse)
+                fs.writeFileSync(`./src/${table}/${table}.service.ts`, serviceResponse)
+            }
+            else if (dbInfo.apiType === "GraphQL") {
+                fs.writeFileSync(`./src/schemas/${table}.schema.ts`, schemaResponse)
+                fs.mkdirSync(`./src/${table}`, { recursive: true })
+                fs.mkdirSync(`./src/${table}/dto`, { recursive: true })
+                fs.writeFileSync(`./src/${table}/dto/create-${table}.input.ts`, createDtoResponse)
+                fs.writeFileSync(`./src/${table}/dto/update-${table}.input.ts`, updateDtoResponse)
+                fs.writeFileSync(`./src/${table}/dto/filter-${table}.input.ts`, filterDtoResponse)
+                fs.writeFileSync(`./src/${table}/${table}.module.ts`, moduleResponse)
+                fs.writeFileSync(`./src/${table}/${table}.resolver.ts`, resolverResponse)
+                fs.writeFileSync(`./src/${table}/${table}.service.ts`, serviceResponse)
+            }
+            else {
+
+            }
+
+
             // console.log(__dirname);
 
 
             console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+            console.log(dbInfo.apiType);
+
 
 
         }
@@ -156,6 +178,12 @@ export const dbConnect = async (dbInfo) => {
 
         const appModuleResponse = appModuleTemplate(models)
         fs.writeFileSync(`./src/app.module.ts`, appModuleResponse)
+
+
+        if (dbInfo.apiType === "RestAPI") {
+            const mainResponse = mainTemplate()
+            fs.writeFileSync(`./src/main.ts`, mainResponse)
+        }
 
 
     }
@@ -232,6 +260,8 @@ import { filterDtoTemplate } from './Templates/filterDtoTemplate'
 import { appModuleTemplate } from './Templates/appModuleTemplate'
 import { configTemplate } from './Templates/configTemplate'
 import { envTemplate } from './Templates/envTemplate'
+import { resolverTemplate } from './Templates/resolverTemplate'
+import { mainTemplate } from './Templates/maintemplate'
 
 // export const dbConnect = () => {
 //     var con = mysql.createConnection({
